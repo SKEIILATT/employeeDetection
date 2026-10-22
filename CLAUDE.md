@@ -4,7 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Simulador de Entrevistas
 
-> Estado actual: el repositorio solo contiene este archivo. Todavía no hay código, comandos de build ni tests; agregarlos aquí a medida que existan.
+> Estado actual: fase 0 en curso dentro de `fase0-laura/`. El usuario construye el proyecto en modo guiado: Claude explica los pasos y el usuario los ejecuta, salvo que pida lo contrario.
+
+## Comandos (fase 0)
+
+Desde `fase0-laura/` en Git Bash:
+
+```bash
+source .venv/Scripts/activate      # activar el entorno virtual (cada terminal nueva)
+python test_llm.py                 # latencia de Qwen: primer token y total
+curl http://127.0.0.1:1234/v1/models   # comprobar que el servidor de LM Studio responde
+```
+
+No hay tests automatizados todavía; los scripts `test_*.py` son pruebas manuales de cada pieza (LLM, voz a texto, texto a voz).
 
 Plataforma para practicar entrevistas de trabajo frente a una entrevistadora virtual ("Laura") en una videollamada con cámara y micrófono. Al terminar, el estudiante recibe un informe con feedback sobre lo que dijo, cómo lo dijo y su lenguaje no verbal.
 
@@ -35,7 +47,7 @@ Plataforma para practicar entrevistas de trabajo frente a una entrevistadora vir
   - Voz a texto: faster-whisper
   - Texto a voz: Piper (voz en español)
   - Cerebro de Laura: Qwen
-- **LLM:** Qwen local con LM Studio para el desarrollo (servidor compatible con OpenAI en `http://localhost:1234/v1`). Más adelante, por API o en un servidor propio con vLLM. Usar siempre la interfaz compatible con OpenAI para poder cambiar de proveedor solo con la URL.
+- **LLM:** Qwen local con LM Studio para el desarrollo (servidor compatible con OpenAI en `http://127.0.0.1:1234/v1`). Más adelante, por API o en un servidor propio con vLLM. Usar siempre la interfaz compatible con OpenAI para poder cambiar de proveedor solo con la URL.
   - Conversación: un modelo mediano y rápido.
   - Evaluación con la rúbrica: un modelo más grande, porque corre una sola vez al final.
 - **Infraestructura futura:** MinIO para las grabaciones y Keycloak (o la autenticación de .NET) para el login.
@@ -74,10 +86,12 @@ fase0-laura/
 - RAM: 16 GB. CPU: AMD Ryzen 5 240.
 - Disco: poco espacio libre (~27 GB). No descargar modelos innecesarios.
 - Configuración de modelos recomendada:
-  - Qwen 4B para empezar, luego probar 8B. Cuantización Q4_K_M, GPU offload al máximo y contexto de 4K a 8K.
+  - LLM de conversación: `qwen/qwen3-4b-2507` (versión sin razonamiento, así que no hace falta `/no_think`). Q4_K_M, GPU offload al máximo y contexto de 8192 (una entrevista completa ocupa ~3500 tokens). No usar la variante "Thinking" porque agrega segundos de latencia por turno.
+  - En LM Studio hay otros modelos descargados (por ejemplo `qwen/qwen3.5-9b`): pedir siempre el modelo exacto del `.env`, porque LM Studio carga automáticamente el que se le pida y puede llenar la VRAM.
   - faster-whisper `small` en int8, en la GPU. Si no hay memoria suficiente, pasarlo a la CPU.
   - Piper en la CPU.
-  - Desactivar el modo de razonamiento de Qwen (`/no_think`) para reducir la latencia.
+- Usar `http://127.0.0.1:1234/v1` y no `localhost`: en Windows, el cliente de Python intenta primero IPv6 (`::1`), LM Studio solo escucha en IPv4, y eso agregaba ~2 s a cada petición (primer token medido: 2,2 s con `localhost` y 0,24 s con `127.0.0.1`).
+- Runtime de LM Studio: "CUDA 12 llama.cpp" (CUDA 12.8, compatible con la serie RTX 50). El runtime "CUDA llama.cpp" (sin el 12) es antiguo y no sirve para esta GPU.
 - La serie RTX 50 es nueva: si hay errores de CUDA, actualizar los drivers y los paquetes.
 - Context7 está instalado como servidor MCP: usarlo para consultar la documentación actualizada de Pipecat, LiveKit, MediaPipe, etc.
 
